@@ -7,9 +7,10 @@ from rich.table import Table
 from rich.prompt import IntPrompt
 from rich.progress import track
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 console = Console()
-
 
 BOOK_URL = "https://library.tarvalon.net/index.php?title=Chapter_Summaries"
 
@@ -32,25 +33,74 @@ def choose_from_dict(data, title):
     show_menu(names, title)
 
     choice = IntPrompt.ask(
-        "Select",
+        "Choose",
         choices=[str(i) for i in range(1, len(names) + 1)]
     )
 
-    selected_name = names[int(choice) - 1]
+    name = names[int(choice) - 1]
 
-    return selected_name, data[selected_name]
+    return name, data[name]
 
 
-def save_markdown(filename, text):
-    with open(filename, "w", encoding="utf-8") as file:
-        file.write(text)
+def scrape_book(book_name, book_url):
+
+    chapters = list_scrape(book_url)
+
+    console.print(
+        f"\n[cyan]{len(chapters)} chapters found[/cyan]\n"
+    )
+
+    results = {}
+
+
+    with ThreadPoolExecutor(max_workers=5) as executor:
+
+        futures = {
+            executor.submit(content_scrape, url): chapter_name
+            for chapter_name, url in chapters.items()
+        }
+
+        for future in track(
+            as_completed(futures),
+            total=len(futures),
+            description="Scraping chapters..."
+        ):
+            chapter_name = futures[future]
+
+            try:
+                results[chapter_name] = future.result()
+
+            except Exception as e:
+                console.print(
+                    f"[red]Failed {chapter_name}: {e}[/red]"
+                )
+
+
+
+    book_text = f"# {book_name}\n\n"
+
+    for chapter_name in chapters:
+        if chapter_name in results:
+            book_text += results[chapter_name]
+            book_text += "\n\n---\n\n"
+
+    return book_text
+
+
+def save_file(filename, content):
+
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write(content)
 
 
 def main():
 
-    console.print("[bold green]Tar Valon Library Scraper[/bold green]\n")
+    console.print(
+        "[bold cyan]Tar Valon Library Scraper[/bold cyan]\n"
+    )
 
-    # Get books
+
+
     books = book_scrape(BOOK_URL)
 
     book_name, book_url = choose_from_dict(
@@ -58,38 +108,29 @@ def main():
         "Choose Book"
     )
 
-    console.print(
-        f"\n[cyan]Selected:[/cyan] {book_name}\n"
-    )
-
-
-    # Get chapters
-    chapters = list_scrape(book_url)
-
-    chapter_name, chapter_url = choose_from_dict(
-        chapters,
-        "Choose Chapter"
-    )
 
     console.print(
-        f"\n[cyan]Scraping:[/cyan] {chapter_name}\n"
+        f"\nSelected: [yellow]{book_name}[/yellow]\n"
     )
 
 
-    # Scrape chapter
-    content = content_scrape(chapter_url)
+
+    book_content = scrape_book(
+        book_name,
+        book_url
+    )
 
 
-    # Save
-    filename = chapter_name.replace(" ", "_") + ".md"
+    filename = book_name.replace(" ", "_") + ".md"
 
-    save_markdown(
+    save_file(
         filename,
-        content
+        book_content
     )
 
+
     console.print(
-        f"[bold green]Saved:[/bold green] {filename}"
+        f"\n[bold green]Saved {filename}[/bold green]"
     )
 
 
