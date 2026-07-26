@@ -3,7 +3,15 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 url="https://library.tarvalon.net/index.php?title=Chapter_Summaries"
 def book_scrape(url):
-  response=requests.get(url)
+  headers = {
+    "User-Agent": "TarValonScraper/0.1"
+  }
+
+  response = requests.get(
+      url,
+      headers=headers,
+      timeout=10
+  )
   soup=BeautifulSoup(response.text,"html.parser")
   content=soup.find(id="mw-content-text")
   books={}

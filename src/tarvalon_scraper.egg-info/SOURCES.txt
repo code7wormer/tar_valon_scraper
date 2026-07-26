@@ -3,10 +3,12 @@ README.md
 pyproject.toml
 src/tarvalon_scraper/__init__.py
 src/tarvalon_scraper/__main__.py
+src/tarvalon_scraper/book_compiler.py
 src/tarvalon_scraper/books_scraper.py
 src/tarvalon_scraper/chap_list_scraper.py
 src/tarvalon_scraper/cli.py
 src/tarvalon_scraper/content_scraper.py
+src/tarvalon_scraper/exporter.py
 src/tarvalon_scraper.egg-info/PKG-INFO
 src/tarvalon_scraper.egg-info/SOURCES.txt
 src/tarvalon_scraper.egg-info/dependency_links.txt

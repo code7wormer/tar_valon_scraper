@@ -6,8 +6,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tarvalon-scraper"
 version = "0.1.0"
-description = "Tar Valon Library scraper"
+description = "Tar Valon Library summary scraper & exporter [.md/.epub]"
+readme = "README.md"
 requires-python = ">=3.11"
+
+authors = [
+    {name = "codewormer"}
+]
 
 dependencies = [
     "requests",
@@ -16,7 +21,15 @@ dependencies = [
     "ebooklib",
     "markdown"
 ]
+
+
 [project.scripts]
 tarvalon = "tarvalon_scraper.cli:main"
+
+
+[project.urls]
+Homepage = "https://github.com/code7wormer/tar_valon_scraper"
+
+
 [tool.setuptools.packages.find]
 where = ["src"]

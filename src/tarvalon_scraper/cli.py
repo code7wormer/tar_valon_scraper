@@ -1,16 +1,14 @@
 from tarvalon_scraper.books_scraper import book_scrape
 from tarvalon_scraper.chap_list_scraper import list_scrape
 from tarvalon_scraper.content_scraper import content_scrape
-
+from tarvalon_scraper.exporter import make_epub
+from tarvalon_scraper.book_compiler import scrape_book
 from rich.console import Console
 from rich.table import Table
 from rich.prompt import IntPrompt
 from rich.progress import track
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from ebooklib import epub
-import markdown
 
 console = Console()
 
@@ -56,48 +54,6 @@ def choose_option(options, title):
     return options[int(choice)]
 
 
-def scrape_book(book_name, book_url):
-
-    chapters = list_scrape(book_url)
-
-    console.print(
-        f"\n[cyan]{len(chapters)} chapters found[/cyan]\n"
-    )
-
-    results = {}
-
-    with ThreadPoolExecutor(max_workers=5) as executor:
-
-        futures = {
-            executor.submit(content_scrape, url): chapter_name
-            for chapter_name, url in chapters.items()
-        }
-
-        for future in track(
-            as_completed(futures),
-            total=len(futures),
-            description="Scraping chapters..."
-        ):
-
-            chapter_name = futures[future]
-
-            try:
-                results[chapter_name] = future.result()
-
-            except Exception as e:
-                console.print(
-                    f"[red]Failed {chapter_name}: {e}[/red]"
-                )
-
-
-    book_text = f"# {book_name}\n\n"
-
-    for chapter_name in chapters:
-        if chapter_name in results:
-            book_text += results[chapter_name]
-            book_text += "\n\n---\n\n"
-
-    return book_text
 
 
 def scrape_chapter(chapter_name, chapter_url):
@@ -108,57 +64,6 @@ def save_file(filename, content):
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
-def make_epub(md_file, epub_file, title):
-
-    with open(md_file, "r", encoding="utf-8") as f:
-        md_content = f.read()
-
-    html_content = markdown.markdown(
-        md_content,
-        extensions=["extra"]
-    )
-
-    book = epub.EpubBook()
-
-    book.set_title(title)
-    book.set_language("en")
-    book.add_author("Robert Jordan")
-
-    chapter = epub.EpubHtml(
-        title=title,
-        file_name="chapter.xhtml",
-        lang="en"
-    )
-
-    chapter.content = html_content
-
-    book.add_item(chapter)
-
-    book.toc = (
-        epub.Link(
-            "chapter.xhtml",
-            title,
-            "chapter"
-        ),
-    )
-
-    book.spine = [
-        "nav",
-        chapter
-    ]
-
-    book.add_item(
-        epub.EpubNcx()
-    )
-
-    book.add_item(
-        epub.EpubNav()
-    )
-
-    epub.write_epub(
-        epub_file,
-        book
-    )
 
 
 def main():

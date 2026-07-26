@@ -2,7 +2,10 @@ Metadata-Version: 2.4
 Name: tarvalon-scraper
 Version: 0.1.0
 Summary: Tar Valon Library scraper
+Author: codewormer
+Project-URL: Homepage, https://github.com/code7wormer/
 Requires-Python: >=3.11
+Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: requests
 Requires-Dist: beautifulsoup4
@@ -10,3 +13,23 @@ Requires-Dist: rich
 Requires-Dist: ebooklib
 Requires-Dist: markdown
 Dynamic: license-file
+
+# Tar Valon Scraper
+
+Scraper for the Tar Valon library, a comprehensive resource for the epic fantasy series - The Wheel of Time, exports compilations of sumamries as markdowns and epubs.
+
+## Installation
+
+pip install tarvalon-scraper
+
+## Usage
+
+tarvalon
+
+## Features
+
+- Book selection
+- Chapter scraping
+- Concurrent downloads
+- Markdown export
+- EPUB export

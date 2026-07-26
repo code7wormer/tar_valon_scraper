@@ -2,7 +2,14 @@ import requests
 from bs4 import BeautifulSoup
 # url="https://library.tarvalon.net/index.php?title=The_Great_Hunt:_Chapter_3"
 def content_scrape(url):
-  response=requests.get(url)
+  headers = {
+      "User-Agent": "TarValonScraper/0.1"
+    }
+  response = requests.get(
+      url,
+      headers=headers,
+      timeout=10
+  )
   txt=""
   soup=BeautifulSoup(response.text,"html.parser")
   content=soup.find(id="mw-content-text")
