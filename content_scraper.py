@@ -1,14 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 # url="https://library.tarvalon.net/index.php?title=The_Great_Hunt:_Chapter_3"
-def scrape(url):
+def content_scrape(url):
   response=requests.get(url)
   txt=""
   soup=BeautifulSoup(response.text,"html.parser")
   content=soup.find(id="mw-content-text")
   #mw-content-text
   heading = soup.select_one("#firstHeading").get_text(" ", strip=True) +"\n\n"
-  txt+=f"#{heading.upper()}
+  txt+=f"# {heading.upper()}"
   first_p = content.find("p")
   if first_p and "Next Chapter" in first_p.get_text():
     first_p.decompose()
@@ -17,7 +17,8 @@ def scrape(url):
       if child.get("id")=="toc":
         collect=False
       if child.name=="h2":
-        section=child.find("span").get("id")
+        span = child.find("span")
+        section = span.get("id") if span else None
         if section=="Outline":
           collect=True
         if section=="Spoilers":
@@ -27,11 +28,11 @@ def scrape(url):
         # txt=txt+child.get_text(" ", strip=True)+"\n\n"
             if child.name == "h2":
                 heading = child.get_text(" ", strip=True)
-                txt += f"#{heading}\n\n"
+                txt += f"## {heading}\n\n"
 
             elif child.name == "h3":
                 heading = child.get_text(" ", strip=True)
-                txt += f"##{heading}\n\n"
+                txt += f"### {heading}\n\n"
 
             elif child.name == "p":
                 txt += child.get_text(" ", strip=True) + "\n\n"
@@ -42,5 +43,5 @@ def scrape(url):
                 txt += "\n"
 
 
-  print(txt)
+  return txt
       
