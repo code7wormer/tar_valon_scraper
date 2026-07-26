@@ -9,6 +9,9 @@ from rich.progress import track
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+import subprocess
+import os
+
 
 console = Console()
 
@@ -42,6 +45,18 @@ def choose_from_dict(data, title):
     return name, data[name]
 
 
+def choose_option(options, title):
+
+    show_menu(options, title)
+
+    choice = IntPrompt.ask(
+        "Choose",
+        choices=[str(i) for i in range(1, len(options) + 1)]
+    )
+
+    return options[int(choice) - 1]
+
+
 def scrape_book(book_name, book_url):
 
     chapters = list_scrape(book_url)
@@ -51,7 +66,6 @@ def scrape_book(book_name, book_url):
     )
 
     results = {}
-
 
     with ThreadPoolExecutor(max_workers=5) as executor:
 
@@ -65,6 +79,7 @@ def scrape_book(book_name, book_url):
             total=len(futures),
             description="Scraping chapters..."
         ):
+
             chapter_name = futures[future]
 
             try:
@@ -74,7 +89,6 @@ def scrape_book(book_name, book_url):
                 console.print(
                     f"[red]Failed {chapter_name}: {e}[/red]"
                 )
-
 
 
     book_text = f"# {book_name}\n\n"
@@ -87,10 +101,28 @@ def scrape_book(book_name, book_url):
     return book_text
 
 
+def scrape_chapter(chapter_name, chapter_url):
+    return content_scrape(chapter_url)
+
+
 def save_file(filename, content):
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
+
+
+def make_epub(md_file, epub_file, title):
+
+    subprocess.run([
+        "pandoc",
+        md_file,
+        "-o",
+        epub_file,
+        "--metadata",
+        f"title={title}",
+        "--metadata",
+        "author=Robert Jordan"
+    ])
 
 
 def main():
@@ -99,8 +131,6 @@ def main():
         "[bold cyan]Tar Valon Library Scraper[/bold cyan]\n"
     )
 
-
-
     books = book_scrape(BOOK_URL)
 
     book_name, book_url = choose_from_dict(
@@ -108,30 +138,87 @@ def main():
         "Choose Book"
     )
 
-
     console.print(
         f"\nSelected: [yellow]{book_name}[/yellow]\n"
     )
 
 
-
-    book_content = scrape_book(
-        book_name,
-        book_url
+    mode = choose_option(
+        [
+            "Single Chapter",
+            "Complete Book"
+        ],
+        "Output Type"
     )
 
+    if mode == "Single Chapter":
 
-    filename = book_name.replace(" ", "_") + ".md"
+        chapters = list_scrape(book_url)
 
-    save_file(
-        filename,
-        book_content
-    )
+        chapter_name, chapter_url = choose_from_dict(
+            chapters,
+            "Choose Chapter"
+        )
+
+        content = scrape_chapter(
+            chapter_name,
+            chapter_url
+        )
+
+        filename = chapter_name.replace(" ", "_") + ".md"
+
+        save_file(
+            filename,
+            content
+        )
+
+        console.print(
+            f"[green]Saved {filename}[/green]"
+        )
+    else:
+
+        output = choose_option(
+            [
+                "Markdown (.md)",
+                "EPUB (.epub)"
+            ],
+            "Book Format"
+        )
 
 
-    console.print(
-        f"\n[bold green]Saved {filename}[/bold green]"
-    )
+        book_content = scrape_book(
+            book_name,
+            book_url
+        )
+
+        md_filename = book_name.replace(" ", "_") + ".md"
+
+        save_file(
+            md_filename,
+            book_content
+        )
+
+
+        if output == "Markdown (.md)":
+
+            console.print(
+                f"[green]Saved {md_filename}[/green]"
+            )
+
+
+        else:
+
+            epub_filename = book_name.replace(" ", "_") + ".epub"
+
+            make_epub(
+                md_filename,
+                epub_filename,
+                book_name
+            )
+
+            console.print(
+                f"[green]Saved {epub_filename}[/green]"
+            )
 
 
 if __name__ == "__main__":
