@@ -1,9 +1,9 @@
 Metadata-Version: 2.4
 Name: tarvalon-scraper
 Version: 0.1.0
-Summary: Tar Valon Library scraper
+Summary: Tar Valon Library summary scraper & exporter [.md/.epub]
 Author: codewormer
-Project-URL: Homepage, https://github.com/code7wormer/
+Project-URL: Homepage, https://github.com/code7wormer/tar_valon_scraper
 Requires-Python: >=3.11
 Description-Content-Type: text/markdown
 License-File: LICENSE
