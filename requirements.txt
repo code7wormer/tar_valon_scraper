@@ -2,12 +2,16 @@ beautifulsoup4==4.15.0
 bs4==0.0.2
 certifi==2026.7.22
 charset-normalizer==3.4.9
+EbookLib==0.20
 idna==3.18
+lxml==6.1.1
+Markdown==3.10.2
 markdown-it-py==4.2.0
 mdurl==0.1.2
 Pygments==2.20.0
 requests==2.34.2
 rich==15.0.0
+six==1.17.0
 soupsieve==2.9.1
 typing_extensions==4.16.0
 urllib3==2.7.0

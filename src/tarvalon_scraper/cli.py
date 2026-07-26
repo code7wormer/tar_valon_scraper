@@ -1,6 +1,6 @@
-from books_scraper import book_scrape
-from chap_list_scraper import list_scrape
-from content_scraper import content_scrape
+from tarvalon_scraper.books_scraper import book_scrape
+from tarvalon_scraper.chap_list_scraper import list_scrape
+from tarvalon_scraper.content_scraper import content_scrape
 
 from rich.console import Console
 from rich.table import Table
@@ -9,9 +9,8 @@ from rich.progress import track
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import subprocess
-import os
-
+from ebooklib import epub
+import markdown
 
 console = Console()
 
@@ -24,26 +23,26 @@ def show_menu(items, title):
     table.add_column("No.", justify="center")
     table.add_column("Name")
 
-    for i, item in enumerate(items, start=1):
+    for i, item in enumerate(items):
         table.add_row(str(i), item)
 
     console.print(table)
 
 
 def choose_from_dict(data, title):
+
     names = list(data.keys())
 
     show_menu(names, title)
 
     choice = IntPrompt.ask(
         "Choose",
-        choices=[str(i) for i in range(1, len(names) + 1)]
+        choices=[str(i) for i in range(len(names))]
     )
 
-    name = names[int(choice) - 1]
+    name = names[int(choice)]
 
     return name, data[name]
-
 
 def choose_option(options, title):
 
@@ -51,10 +50,10 @@ def choose_option(options, title):
 
     choice = IntPrompt.ask(
         "Choose",
-        choices=[str(i) for i in range(1, len(options) + 1)]
+        choices=[str(i) for i in range(len(options))]
     )
 
-    return options[int(choice) - 1]
+    return options[int(choice)]
 
 
 def scrape_book(book_name, book_url):
@@ -109,20 +108,57 @@ def save_file(filename, content):
 
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
-
-
 def make_epub(md_file, epub_file, title):
 
-    subprocess.run([
-        "pandoc",
-        md_file,
-        "-o",
+    with open(md_file, "r", encoding="utf-8") as f:
+        md_content = f.read()
+
+    html_content = markdown.markdown(
+        md_content,
+        extensions=["extra"]
+    )
+
+    book = epub.EpubBook()
+
+    book.set_title(title)
+    book.set_language("en")
+    book.add_author("Robert Jordan")
+
+    chapter = epub.EpubHtml(
+        title=title,
+        file_name="chapter.xhtml",
+        lang="en"
+    )
+
+    chapter.content = html_content
+
+    book.add_item(chapter)
+
+    book.toc = (
+        epub.Link(
+            "chapter.xhtml",
+            title,
+            "chapter"
+        ),
+    )
+
+    book.spine = [
+        "nav",
+        chapter
+    ]
+
+    book.add_item(
+        epub.EpubNcx()
+    )
+
+    book.add_item(
+        epub.EpubNav()
+    )
+
+    epub.write_epub(
         epub_file,
-        "--metadata",
-        f"title={title}",
-        "--metadata",
-        "author=Robert Jordan"
-    ])
+        book
+    )
 
 
 def main():

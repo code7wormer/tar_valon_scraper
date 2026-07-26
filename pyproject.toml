@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "tarvalon-scraper"
+version = "0.1.0"
+description = "Tar Valon Library scraper"
+requires-python = ">=3.11"
+
+dependencies = [
+    "requests",
+    "beautifulsoup4",
+    "rich",
+    "ebooklib",
+    "markdown"
+]
+[project.scripts]
+tarvalon = "tarvalon_scraper.cli:main"
+[tool.setuptools.packages.find]
+where = ["src"]
