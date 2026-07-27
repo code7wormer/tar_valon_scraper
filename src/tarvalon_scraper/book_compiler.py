@@ -1,3 +1,11 @@
+
+from tarvalon_scraper.chap_list_scraper import list_scrape
+from tarvalon_scraper.content_scraper import content_scrape
+from rich.console import Console
+from rich.progress import track
+
+from concurrent.futures import ThreadPoolExecutor, as_completed
+console = Console()
 def scrape_book(book_name, book_url):
     
     chapters = list_scrape(book_url)

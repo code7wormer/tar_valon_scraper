@@ -1,224 +1,246 @@
-import os
-import sys
-
 from tarvalon_scraper.books_scraper import book_scrape
 from tarvalon_scraper.chap_list_scraper import list_scrape
 from tarvalon_scraper.content_scraper import content_scrape
 from tarvalon_scraper.exporter import make_epub
 from tarvalon_scraper.book_compiler import scrape_book
-
 from rich.console import Console
-from rich.theme import Theme
 from rich.table import Table
-from rich.panel import Panel
-from rich.align import Align
-from rich.text import Text
-from rich.rule import Rule
 from rich.prompt import IntPrompt
+
+from rich.panel import Panel
+from rich.text import Text
 from rich import box
+from rich.align import Align
+from rich.rule import Rule
+
+console = Console()
 
 
-def _detect_unicode_support() -> bool:
-    if os.environ.get("TARVALON_ASCII", "0") != "0":
-        return False
-    if os.environ.get("TARVALON_UNICODE", "0") != "0":
-        return True
-
-    encoding = (getattr(sys.stdout, "encoding", None) or "").upper()
-    if "UTF" not in encoding:
-        return False
-
-    if sys.platform == "win32" and not (
-        os.environ.get("WT_SESSION") or os.environ.get("TERM_PROGRAM")
-    ):
-        return False
-
-    return True
-
-
-UNICODE_OK = _detect_unicode_support()
-
-BOX_PANEL = box.DOUBLE_EDGE if UNICODE_OK else box.ASCII_DOUBLE_HEAD
-BOX_TABLE = box.SIMPLE_HEAVY if UNICODE_OK else box.ASCII2
-BOX_SUCCESS = box.ROUNDED if UNICODE_OK else box.ASCII
-RULE_CHAR = "─" if UNICODE_OK else "-"
-
-VIOLET = "#8b5cf6"
-GOLD = "#facc15"
-TEXT = "#f4f4f5"
-SUCCESS = "#4ade80"
-
-THEME = Theme(
-    {
-        "title": f"bold {GOLD}",
-        "index": f"bold {VIOLET}",
-        "item": TEXT,
-        "prompt": f"bold {VIOLET}",
-        "success": f"bold {SUCCESS}",
-        "border": VIOLET,
-    }
-)
-
-console = Console(theme=THEME)
 
 BOOK_URL = "https://library.tarvalon.net/index.php?title=Chapter_Summaries"
 
-GRADIENT_START = (139, 92, 246)
-GRADIENT_END = (250, 204, 21)
+BANNER_ART = r"""
+ [bold cyan]████████╗ █████╗ ██████╗ ██╗   ██╗ █████╗ ██╗      ██████╗ ███╗   ██╗[/bold cyan]
+ [bold bright_blue]╚══██╔══╝██╔══██╗██╔══██╗██║   ██║██╔══██╗██║     ██╔═══██╗████╗  ██║[/bold bright_blue]
+    [bold blue]██║   ███████║██████╔╝██║   ██║███████║██║     ██║   ██║██╔██╗ ██║[/bold blue]
+    [bold magenta]██║   ██╔══██║██╔══██╗╚██╗ ██╔╝██╔══██║██║     ██║   ██║██║╚██╗██║[/bold magenta]
+    [bold bright_magenta]██║   ██║  ██║██║  ██║ ╚████╔╝ ██║  ██║███████╗╚██████╔╝██║ ╚████║[/bold bright_magenta]
+    [bold violet]╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝  ╚═══╝  ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═══╝[/bold violet]
+"""
 
-
-def _card_width():
-    return max(56, min(console.size.width - 8, 78))
-
-
-def _lerp_color(start, end, t):
-    return tuple(int(start[i] + (end[i] - start[i]) * t) for i in range(3))
-
-
-def gradient_text(s, start_rgb=GRADIENT_START, end_rgb=GRADIENT_END):
-    text = Text()
-    total = max(len(s) - 1, 1)
-    for i, ch in enumerate(s):
-        r, g, b = _lerp_color(start_rgb, end_rgb, i / total)
-        text.append(ch, style=f"bold #{r:02x}{g:02x}{b:02x}")
-    return text
-
-
-def show_banner():
-    width = _card_width()
-    banner = gradient_text("Tar Valon Library Scraper")
-
-    console.print()
-    try:
-        console.print(
-            Panel(
-                Align.center(banner),
-                box=BOX_PANEL,
-                border_style="border",
-                padding=(1, 4),
-                width=width,
-            ),
-            justify="center",
-        )
-    except UnicodeEncodeError:
-        console.print("=" * min(console.size.width, 60))
-        console.print(Align.center(Text("Tar Valon Library Scraper", style="title")))
-        console.print("=" * min(console.size.width, 60))
-    console.print()
-
-
-def success_panel(message):
-    width = _card_width()
+def print_header():
+    banner = Text.from_markup(BANNER_ART)
+    subtitle = Text("✦ TAR VALON ARCHIVES • THE WHEEL OF TIME SCRAPER ✦\n", style="bold yellow")
+    badges = Text.from_markup("[bold black on bright_cyan] VERSION 0.1.0 [/bold black on bright_cyan]  [bold white on magenta] LIBRARY SCRAPER [/bold white on magenta]  [bold black on bright_green] ONLINE [/bold black on bright_green]")
+    
+    header_content = Align.center(
+        Text.assemble(banner, "\n", subtitle, badges)
+    )
+    
     console.print()
     console.print(
         Panel(
-            Align.center(Text(message, style="success")),
-            box=BOX_SUCCESS,
-            border_style="success",
-            padding=(1, 6),
-            width=width,
-        ),
-        justify="center",
+            header_content,
+            box=box.DOUBLE_EDGE,
+            border_style="bright_magenta",
+            padding=(1, 2)
+        )
     )
-
-
-def build_menu_table(items, title):
-    table = Table(
-        box=BOX_TABLE,
-        border_style="border",
-        title=title,
-        title_style="title",
-        header_style="bold",
-        pad_edge=False,
-        min_width=40,
-    )
-
-    table.add_column("No.", justify="right", style="index", width=4, no_wrap=True)
-    table.add_column("Name", style="item")
-
-    for i, item in enumerate(items):
-        table.add_row(str(i), item)
-
-    return table
+    console.print()
 
 
 def show_menu(items, title):
-    console.print()
-    console.print(Rule(style="border", characters=RULE_CHAR))
-    console.print()
-    table = build_menu_table(items, title)
-    console.print(table, justify="center")
-
-
-def prompt_choice(count):
-    return IntPrompt.ask(
-        "\n[prompt]Choose[/prompt]",
-        choices=[str(i) for i in range(count)],
-        show_choices=False,
+    table = Table(
+        show_header=True,
+        header_style="bold bright_cyan",
+        box=box.ROUNDED,
+        border_style="bright_blue",
+        expand=True,
+        pad_edge=True
     )
+
+    table.add_column("INDEX", justify="center", style="bold yellow", width=10)
+    table.add_column("TITLE / NAME", style="bold white")
+
+    for i, item in enumerate(items):
+        idx_badge = f"[bold cyan]❯ [{i:02d}][/bold cyan]"
+        table.add_row(idx_badge, item)
+
+    panel = Panel(
+        table,
+        title=f"[bold bright_yellow]✦ {title.upper()} ✦[/bold bright_yellow]",
+        title_align="center",
+        subtitle="[dim cyan]Type option index & press Enter[/dim cyan]",
+        subtitle_align="center",
+        border_style="bold magenta",
+        box=box.ROUNDED,
+        padding=(1, 2)
+    )
+
+    console.print(panel)
 
 
 def choose_from_dict(data, title):
+
     names = list(data.keys())
+
     show_menu(names, title)
-    choice = prompt_choice(len(names))
+
+    choice = IntPrompt.ask(
+        "\n[bold bright_yellow]❯[/bold bright_yellow] [bold bright_white]Select Choice Index[/bold bright_white]",
+        choices=[str(i) for i in range(len(names))],
+        show_choices=False
+    )
+
     name = names[int(choice)]
+
     return name, data[name]
 
-
 def choose_option(options, title):
+
     show_menu(options, title)
-    choice = prompt_choice(len(options))
+
+    choice = IntPrompt.ask(
+        "\n[bold bright_yellow]❯[/bold bright_yellow] [bold bright_white]Select Option Index[/bold bright_white]",
+        choices=[str(i) for i in range(len(options))],
+        show_choices=False
+    )
+
     return options[int(choice)]
 
 
 def scrape_chapter(chapter_name, chapter_url):
-    return content_scrape(chapter_url)
+    with console.status("[bold cyan]Scraping chapter content from Tar Valon...[/bold cyan]", spinner="dots12"):
+        return content_scrape(chapter_url)
 
 
 def save_file(filename, content):
+
     with open(filename, "w", encoding="utf-8") as f:
         f.write(content)
 
 
 def main():
-    show_banner()
+    print_header()
 
-    books = book_scrape(BOOK_URL)
+    with console.status("[bold cyan]Fetching library catalog from Tar Valon...[/bold cyan]", spinner="dots12"):
+        books = book_scrape(BOOK_URL)
 
-    book_name, book_url = choose_from_dict(books, "Choose Book")
-    console.print(f"\nSelected: [bold gold1]{book_name}[/bold gold1]\n")
+    book_name, book_url = choose_from_dict(
+        books,
+        "Select Target Book"
+    )
 
-    mode = choose_option(["Single Chapter", "Complete Book"], "Output Type")
+    console.print(
+        Panel(
+            f"[bold white]Active Selection:[/bold white] [bold bright_yellow]{book_name}[/bold bright_yellow]",
+            border_style="bright_green",
+            box=box.ROUNDED,
+            expand=False
+        )
+    )
+    console.print()
+
+    mode = choose_option(
+        [
+            "Single Chapter",
+            "Complete Book"
+        ],
+        "Output Mode"
+    )
 
     if mode == "Single Chapter":
-        chapters = list_scrape(book_url)
+        with console.status("[bold cyan]Fetching chapter list from Tar Valon...[/bold cyan]", spinner="dots12"):
+            chapters = list_scrape(book_url)
 
-        chapter_name, chapter_url = choose_from_dict(chapters, "Choose Chapter")
+        chapter_name, chapter_url = choose_from_dict(
+            chapters,
+            "Select Chapter"
+        )
 
-        content = scrape_chapter(chapter_name, chapter_url)
+        content = scrape_chapter(
+            chapter_name,
+            chapter_url
+        )
 
         filename = chapter_name.replace(" ", "_") + ".md"
-        save_file(filename, content)
 
-        success_panel(f"Saved {filename}")
+        save_file(
+            filename,
+            content
+        )
 
+        console.print()
+        console.print(
+            Panel(
+                f"[bold bright_green]✔ CHAPTER SCRAPED SUCCESSFULLY![/bold bright_green]\n\n"
+                f"[bold white]Saved to:[/bold white] [bold bright_cyan]{filename}[/bold bright_cyan]",
+                title="[bold bright_green]✦ SUCCESS ✦[/bold bright_green]",
+                title_align="center",
+                border_style="bright_green",
+                box=box.ROUNDED,
+                expand=False
+            )
+        )
     else:
-        output = choose_option(["Markdown (.md)", "EPUB (.epub)"], "Book Format")
 
-        book_content = scrape_book(book_name, book_url)
+        output = choose_option(
+            [
+                "Markdown (.md)",
+                "EPUB (.epub)"
+            ],
+            "Select Book Format"
+        )
+
+        book_content = scrape_book(
+            book_name,
+            book_url
+        )
 
         md_filename = book_name.replace(" ", "_") + ".md"
-        save_file(md_filename, book_content)
 
+        save_file(
+            md_filename,
+            book_content
+        )
+
+        console.print()
         if output == "Markdown (.md)":
-            success_panel(f"Saved {md_filename}")
-        else:
-            epub_filename = book_name.replace(" ", "_") + ".epub"
-            make_epub(md_filename, epub_filename, book_name)
-            success_panel(f"Saved {epub_filename}")
 
-    console.print()
+            console.print(
+                Panel(
+                    f"[bold bright_green]✔ COMPLETE BOOK SCRAPED SUCCESSFULLY![/bold bright_green]\n\n"
+                    f"[bold white]Saved to:[/bold white] [bold bright_cyan]{md_filename}[/bold bright_cyan]",
+                    title="[bold bright_green]✦ SUCCESS ✦[/bold bright_green]",
+                    title_align="center",
+                    border_style="bright_green",
+                    box=box.ROUNDED,
+                    expand=False
+                )
+            )
+
+        else:
+
+            epub_filename = book_name.replace(" ", "_") + ".epub"
+
+            with console.status("[bold cyan]Compiling EPUB book archive...[/bold cyan]", spinner="dots12"):
+                make_epub(
+                    md_filename,
+                    epub_filename,
+                    book_name
+                )
+
+            console.print(
+                Panel(
+                    f"[bold bright_green]✔ EPUB GENERATED SUCCESSFULLY![/bold bright_green]\n\n"
+                    f"[bold white]Saved to:[/bold white] [bold bright_cyan]{epub_filename}[/bold bright_cyan]",
+                    title="[bold bright_green]✦ SUCCESS ✦[/bold bright_green]",
+                    title_align="center",
+                    border_style="bright_green",
+                    box=box.ROUNDED,
+                    expand=False
+                )
+            )
 
 
 if __name__ == "__main__":
