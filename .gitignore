@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 *.epub
 *.md
+!README.md
 build/
 dist/
 *.egg-info/
