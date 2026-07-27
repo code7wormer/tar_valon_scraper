@@ -10,7 +10,7 @@ def book_scrape(url):
   response = requests.get(
       url,
       headers=headers,
-      timeout=10
+      timeout=30
   )
   soup=BeautifulSoup(response.text,"html.parser")
   content=soup.find(id="mw-content-text")

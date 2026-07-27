@@ -8,7 +8,7 @@ def content_scrape(url):
   response = requests.get(
       url,
       headers=headers,
-      timeout=10
+      timeout=30
   )
   txt=""
   soup=BeautifulSoup(response.text,"html.parser")

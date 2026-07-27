@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tarvalon-scraper"
-version = "0.1.5"
+version = "0.1.6"
 description = "Tar Valon Library summary scraper & exporter [.md/.epub]"
 readme = "README.md"
 requires-python = ">=3.11"

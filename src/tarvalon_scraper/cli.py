@@ -31,7 +31,7 @@ BANNER_ART = r"""
 def print_header():
     banner = Text.from_markup(BANNER_ART)
     subtitle = Text("✦ TAR VALON ARCHIVES • THE WHEEL OF TIME SCRAPER ✦\n", style="bold yellow")
-    badges = Text.from_markup("[bold black on bright_cyan] VERSION 0.1.0 [/bold black on bright_cyan]  [bold white on magenta] LIBRARY SCRAPER [/bold white on magenta]  [bold black on bright_green] ONLINE [/bold black on bright_green]")
+    badges = Text.from_markup("[bold black on bright_cyan] VERSION 0.1.6 [/bold black on bright_cyan]  [bold white on magenta] LIBRARY SCRAPER [/bold white on magenta]  [bold black on bright_green] ONLINE [/bold black on bright_green]")
     
     header_content = Align.center(
         Text.assemble(banner, "\n", subtitle, badges)
@@ -163,7 +163,7 @@ def main():
             chapter_url
         )
 
-        filename = chapter_name.replace(" ", "_") + ".md"
+        filename = chapter_name.replace(":", "").replace("/", "-").replace(" ", "_") + ".md"
 
         save_file(
             filename,

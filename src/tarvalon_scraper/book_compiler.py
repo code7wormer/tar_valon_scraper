@@ -1,4 +1,3 @@
-
 from tarvalon_scraper.chap_list_scraper import list_scrape
 from tarvalon_scraper.content_scraper import content_scrape
 from rich.console import Console
